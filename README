@@ -1,0 +1,56 @@
+y=2012
+
+# Pretty-printed list of quotes ordered by score. Only includes ones with at least 10 points. Does not include replies.
+cat urls | python parse.py pretty 10 > rq.html
+
+cat urls | grep $y | python parse.py pretty 10 > rq_only$y.html
+
+# Pretty-printed list of quotes ordered by score. Only includes ones with at least 10 points. Includes replies.
+cat urls | python parse.py pretty 10 includechildren > rq_noisy.html
+
+# How many are there?:
+cat rq.html | grep -c "class=.comment-content"
+
+
+# Top commenters by number of quotes in the toplist (only at least 10 point qoutes are counted)
+cat rq.html | grep "comment-author.><strong>" | tr '<>' ' ' | awk '{ print $6 }' | sort | uniq -c | sort -nr | awk '{ print "*",$1,$2 }' | head -40 > topcommentersByQuoteNum.markdown
+
+cat urls | python parse.py score > scores
+
+# Top quote contributors by total karma score collected
+# http://lesswrong.com/lw/3cn/best_of_rationality_quotes_20092010/37d7
+cat scores | awk '{ m[$1]+=$2 } END { for (a in m) { print m[a],a } }' | sort -nr | awk '{ print "*",$1,$2 }' | head -40 > topCommentersByKarma.markdown
+
+# Top quote contributors by karma score collected in $y
+# http://lesswrong.com/lw/91s/best_of_rationality_quotes_2011_edition/5jbq
+cat urls | grep $y | python parse.py score > scores.$y
+cat scores.$y | awk '{ m[$1]+=$2 } END { for (a in m) { print m[a],a } }' | sort -nr | awk '{ print "*",$1,$2 }' | head -40 > topCommentersByKarmaIn$y.markdown
+
+cat urls | python parse.py text > maxent.data
+cat maxent.data | sed "s/<[/a-zA-Z]*>//g" | ~/scripts/tokenizer.perl > maxent.normalized.data
+cat maxent.normalized.data | tr ' ' '\n' | grep "^[A-Z]" | sort | uniq -c | sort -nr | grep -v "\.$" > capitalized.counts
+cat capitalized.counts | iconv -f utf8 -t latin2 -c | awk '{ print $2 }' | ocamorph --bin ~/lexicons/morphdb.en/out/morphdb_en.bin --tag_sep " " --tag_preamble "" | paste capitalized.counts - | grep UNK | awk '{ print $2 "\t" $1 }' | iconv -f latin2 -t utf8 -c  > topquotes
+#cp topquotes topquotes.handedited
+# From this I created topquotes.handedited. It is the top of topquotes, with obvious mistakes (mostly first names) removed.
+
+# Top original authors by number of quotes
+# http://lesswrong.com/lw/3cn/best_of_rationality_quotes_20092010/37ds
+cat topquotes.handedited | awk '{ print "*",$1,$2 }' > topOriginalAuthorsByNumOfQuotes.markdown
+
+# Top original authors by total karma score collected
+# http://lesswrong.com/lw/3cn/best_of_rationality_quotes_20092010/37dx
+cat topquotes | head -400 | cut -f1 | while read a ; do echo -n "$a " ; cat maxent.normalized.data | grep "\<$a\>" | awk '{ s+=$1 }  END { print s }' ; done | awk '{ print $2,$1 }' | sort -nr | awk '{ print "*",$0 }' | head -50 > topquotesbykarma
+#cp topquotesbykarma topquotesbykarma.handedited
+# This also had to be post-edited. Also, note the head -400 at the beginning.
+cat topquotesbykarma.handedited | awk '{ print "*",$1,$2 }' > topOriginalAuthorsByKarma.markdown
+
+# Top quote contributors by statistical significance level
+# http://lesswrong.com/lw/3cn/best_of_rationality_quotes_20092010/37ej
+cat scores | cut -f2 | sort -n | uniq -c > scoredistribution 
+# Does not sort the results:
+cat scores | awk '{ sc[$1]+=$2 ; qn[$1]+=1 } END { for (a in qn) { print sc[a]/qn[a],qn[a],a } }' | sort -nr | awk '{ print $3,$1*$2,$2 }' | python convolution.py > convolutedscores
+# The grep -v "(-" gets rid of improbably LOW scores. They are there because of a hopefully innocent bug.
+cat convolutedscores | sort -n | grep -v "(-" | head -40 > topCommentersBySignificanceLevel.markdown
+
+# Top short quotes by karma per character
+cat urls | python parse.py rawtext | sed "s/<[^<]*>//g" | awk 'BEGIN{FS="\t"} (length($2)<100) { print $1/length($2) "\t" $0 }' | sort -nr | awk 'BEGIN{FS="\t"}  { print "*",$2,$3 }' | head -100
