@@ -1,3 +1,8 @@
+====================================================================
+Copied from http://people.mokk.bme.hu/~daniel/rationality_quotes_2012
+Simply on github for easier editing and adding later year's rationality quotes etc..
+====================================================================
+
 y=2012
 
 # Pretty-printed list of quotes ordered by score. Only includes ones with at least 10 points. Does not include replies.
@@ -46,7 +51,7 @@ cat topquotesbykarma.handedited | awk '{ print "*",$1,$2 }' > topOriginalAuthors
 
 # Top quote contributors by statistical significance level
 # http://lesswrong.com/lw/3cn/best_of_rationality_quotes_20092010/37ej
-cat scores | cut -f2 | sort -n | uniq -c > scoredistribution 
+cat scores | cut -f2 | sort -n | uniq -c > scoredistribution
 # Does not sort the results:
 cat scores | awk '{ sc[$1]+=$2 ; qn[$1]+=1 } END { for (a in qn) { print sc[a]/qn[a],qn[a],a } }' | sort -nr | awk '{ print $3,$1*$2,$2 }' | python convolution.py > convolutedscores
 # The grep -v "(-" gets rid of improbably LOW scores. They are there because of a hopefully innocent bug.
@@ -54,3 +59,7 @@ cat convolutedscores | sort -n | grep -v "(-" | head -40 > topCommentersBySignif
 
 # Top short quotes by karma per character
 cat urls | python parse.py rawtext | sed "s/<[^<]*>//g" | awk 'BEGIN{FS="\t"} (length($2)<100) { print $1/length($2) "\t" $0 }' | sort -nr | awk 'BEGIN{FS="\t"}  { print "*",$2,$3 }' | head -100
+
+
+==============================================================================================
+P.S: If you're original author and don't like or want this on github let me know will take it down.
